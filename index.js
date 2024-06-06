@@ -190,3 +190,5 @@ class AddressInputValidator {
     this.input.parentElement.querySelector("button").removeAttribute("disabled");
   }
 }
+
+export { AddressInputValidator };
