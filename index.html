@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My HTML Page</title>
+  </head>
+  <body>
+    <h1>Hello, world!</h1>
+
+    <p>This is my first HTML page.</p>
+    <form id="submit">
+      <input
+        type="text"
+        class="address-input"
+        id="state"
+        maxlength="400"
+        style="width: 100%"
+        value="12345 Main St, wallingford CT, 06492"
+      />
+      <button id="submit">SUBMIT</button>
+    </form>
+    <script type="module">
+      import { AddressInputValidator } from "./index.js";
+    </script>
+  </body>
+</html>
