@@ -105,6 +105,9 @@ class AddressInputValidator {
     ];
   }
   handleInput(event) {
+    this.input.addEventListener("input", this.clearOldErrors.bind(this));
+    this.input.addEventListener("keyup", this.clearOldErrors.bind(this));
+    this.input.addEventListener("blur", this.clearOldErrors.bind(this));
     this.stateValue = this.input.value;
     if (!this.checkForStateCode()) {
       if (!this.checkForZipCode()) {
@@ -207,6 +210,11 @@ class AddressInputValidator {
   reportError(msg) {
     this.input.setCustomValidity(msg);
     this.input.reportValidity();
+  }
+  clearOldErrors() {
+    if (this.input.value === "") {
+      this.removeError();
+    }
   }
   enableSubmitButton() {
     this.input.parentElement.querySelector("button").removeAttribute("disabled");
