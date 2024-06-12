@@ -71,23 +71,44 @@ class AddressInputValidator {
       ]);
   }
   handleInput(event) {
-    this.input.addEventListener("input", this.clearOldErrors.bind(this));
-    this.input.addEventListener("keyup", this.clearOldErrors.bind(this));
-    this.input.addEventListener("blur", this.clearOldErrors.bind(this));
+    this.input.addEventListener("input", this.removeError.bind(this));
+    this.input.addEventListener("keyup", this.removeError.bind(this));
+    this.input.addEventListener("blur", this.removeError.bind(this));
     this.stateValue = this.input.value;
     if (!this.checkForStateCode()) {
       if (!this.checkForZipCode()) {
         if (!this.checkForCommas()) {
-          return true;
+          if (!this.seemsInvalid()) {
+            return true;
+          }
         }
       }
+    }
+    return false;
+  }
+  //arbitrary checks for things that seem invalid
+  seemsInvalid() {
+    if (this.stateValue.split(" ").length > 4) {
+      const userValidated = confirm(
+        'It looks like you may have entered a city, state, or zip code. Please remove any city, state, or zip code information and try again. If you are sure you have entered a street address that does not contain city, state, or zipcode, click "OK" to continue.'
+      );
+      if (userValidated) {
+        return false;
+      } else {
+        this.reportError(
+          `Please provide only a street address. ex (123 Main St), exclude city, state, zipcode, and commas.`
+        );
+      }
+      return true;
     }
     return false;
   }
   checkForCommas() {
     const commas = [...this.stateValue].filter((strChar, i, arr) => strChar === ",");
     if (commas.length > 0) {
-      this.reportError(`Please provide only a street address. ex (123 Main St), exclude city, state, and commas.`);
+      this.reportError(
+        `Please provide only a street address. ex (123 Main St), exclude city, state, zipcode, and commas.`
+      );
       return true;
     }
     return false;
@@ -188,11 +209,6 @@ class AddressInputValidator {
   reportError(msg) {
     this.input.setCustomValidity(msg);
     this.input.reportValidity();
-  }
-  clearOldErrors() {
-    if (this.input.value === "") {
-      this.removeError();
-    }
   }
   enableSubmitButton() {
     this.input.parentElement.querySelector("button").removeAttribute("disabled");
