@@ -197,11 +197,18 @@ class AddressInputValidator {
       return /^[0-9]+$/.test(element);
     });
     if (numbers.length > 1) {
-      this.emptyInputValue({ reason: "potentialZipCodeFound", value: numbers });
-      return true;
+      const userValidatedNoZip = confirm(
+        'It looks like you may have entered a zip code. Please remove any zip code information and try again. If you are sure you have entered a street address that does not contain a zip code, click "OK" to continue.'
+      );
+      if (userValidatedNoZip) {
+        return false;
+      } else {
+        this.emptyInputValue({ reason: "potentialZipCodeFound", value: numbers });
+        return true;
+      }
     }
     const looksLikeZip = numbers.filter((element) => {
-      if (element !== this.whiteListedZipCode && /^\d{5}(?:[-\s]\d{4})?$/.test(element)) {
+      if (element !== this.whiteListedZipCode && /^\d{5}(?:[-\s]\d{4})?$/.test(element) || /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][ -]?\d[ABCEGHJ-NPRSTV-Z]\d$/i.test(element)) {
         return element;
       }
     });
@@ -211,18 +218,24 @@ class AddressInputValidator {
         this.emptyInputValue({ reason: "potentialZipCodeFound", value: probablyZipCode });
         return true;
       } else {
-        return false;
+        const userValidatedNoZip = confirm(
+          'It looks like you may have entered a zip code. Please remove any zip code information and try again. If you are sure you have entered a street address that does not contain a zip code, click "OK" to continue.'
+        );
+        if (userValidatedNoZip) {
+          return false;
+        } else {
+          this.emptyInputValue({ reason: "potentialZipCodeFound", value: probablyZipCode });
+          return true;
+        }
       }
     } else {
       return false;
     }
   }
   emptyInputValue(reasonData) {
+    console.log(reasonData.reason);
     this.reportError(`Please enter only a street address without zip code, city, or state. (ex: 123 Main St).`);
     this.input.value = "";
-    setTimeout(() => {
-      this.removeError();
-    }, 5e3);
   }
   removeError() {
     this.input.setCustomValidity("");
