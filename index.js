@@ -1,4 +1,7 @@
 "use strict";
+
+//create google event for confirm modal
+
 class AddressInputValidator {
   constructor(input) {
     (this.valid = false),
@@ -160,8 +163,8 @@ class AddressInputValidator {
   calculateValidity() {
     return new Promise((resolve, reject) => {
       let score = 0;
-      if (this.stateValue.split(" ").length > 4) {
-        console.log("more than 4 words found, score +1");
+      if (this.stateValue.split(" ").length > 5) {
+        console.log("more than 5 words found, score +1");
         score++;
       }
       if (this.checkForCommas()) {
