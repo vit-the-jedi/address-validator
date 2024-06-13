@@ -5,6 +5,9 @@ class AddressInputValidator {
       (this.validityTable = {
         hasZipCode: true,
         hasStateCode: true,
+        hasProvinceCode: true,
+        hasStateName: true,
+        hasProvinceName: true,
         seemsValid: false,
       }),
       (this.stateValue = null),
@@ -69,46 +72,131 @@ class AddressInputValidator {
         "WI",
         "WY",
       ]);
+    this.provinceCodes = ["AB", "BC", "MB", "NB", "NL", "NS", "ON", "PE", "QC", "SK"];
+    this.stateNames = [
+      "Alabama",
+      "Alaska",
+      "Arizona",
+      "Arkansas",
+      "California",
+      "Colorado",
+      "Connecticut",
+      "Delaware",
+      "Florida",
+      "Georgia",
+      "Hawaii",
+      "Idaho",
+      "Illinois",
+      "Indiana",
+      "Iowa",
+      "Kansas",
+      "Kentucky",
+      "Louisiana",
+      "Maine",
+      "Maryland",
+      "Massachusetts",
+      "Michigan",
+      "Minnesota",
+      "Mississippi",
+      "Missouri",
+      "Montana",
+      "Nebraska",
+      "Nevada",
+      "New Hampshire",
+      "New Jersey",
+      "New Mexico",
+      "New York",
+      "North Carolina",
+      "North Dakota",
+      "Ohio",
+      "Oklahoma",
+      "Oregon",
+      "Pennsylvania",
+      "Rhode Island",
+      "South Carolina",
+      "South Dakota",
+      "Tennessee",
+      "Texas",
+      "Utah",
+      "Vermont",
+      "Virginia",
+      "Washington",
+      "West Virginia",
+      "Wisconsin",
+      "Wyoming",
+    ];
+    this.provinceNames = [
+      "Alberta",
+      "British Columbia",
+      "Manitoba",
+      "New Brunswick",
+      "Newfoundland and Labrador",
+      "Northwest Territories",
+      "Nova Scotia",
+      "Nunavut",
+      "Ontario",
+      "Prince Edward Island",
+      "Quebec",
+      "Saskatchewan",
+      "Yukon",
+    ];
   }
-  handleInput(event) {
-    this.input.addEventListener("input", this.removeError.bind(this));
+  async handleInput(event) {
+    //this.input.addEventListener("input", this.removeError.bind(this));
     this.input.addEventListener("keyup", this.removeError.bind(this));
-    this.input.addEventListener("blur", this.removeError.bind(this));
+    // this.input.addEventListener("blur", this.removeError.bind(this));
     this.stateValue = this.input.value;
-    if (!this.checkForStateCode()) {
-      if (!this.checkForZipCode()) {
-        if (!this.checkForCommas()) {
-          if (!this.seemsInvalid()) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
+
+    this.validityTable.hasZipCode = this.checkForZipCode();
+    this.validityTable.hasStateCode = this.checkForStateRefs(this.stateCodes);
+    this.validityTable.hasProvinceCode = this.checkForStateRefs(this.provinceCodes);
+    this.validityTable.hasStateName = this.checkForStateRefs(this.stateNames);
+    this.validityTable.hasProvinceName = this.checkForStateRefs(this.provinceNames);
+    this.validityTable.seemsValid = await this.calculateValidity();
+    console.log(this.validityTable.seemsValid);
+    return this.validityTable.seemsValid;
   }
   //arbitrary checks for things that seem invalid
-  seemsInvalid() {
-    if (this.stateValue.split(" ").length > 4) {
-      const userValidated = confirm(
-        'It looks like you may have entered a city, state, or zip code. Please remove any city, state, or zip code information and try again. If you are sure you have entered a street address that does not contain city, state, or zipcode, click "OK" to continue.'
-      );
-      if (userValidated) {
-        return false;
-      } else {
-        this.reportError(
-          `Please provide only a street address. ex (123 Main St), exclude city, state, zipcode, and commas.`
-        );
+  calculateValidity() {
+    return new Promise((resolve, reject) => {
+      let score = 0;
+      if (this.stateValue.split(" ").length > 4) {
+        console.log("more than 4 words found, score +1");
+        score++;
       }
-      return true;
-    }
-    return false;
+      if (this.checkForCommas()) {
+        console.log("commas found, score +1");
+        score++;
+      }
+      if (
+        this.validityTable.hasZipCode ||
+        this.validityTable.hasStateCode ||
+        this.validityTable.hasProvinceCode ||
+        this.validityTable.hasStateName ||
+        this.validityTable.hasProvinceName
+      ) {
+        score += 3;
+      }
+      console.log(score);
+      if (score === 0) resolve(true);
+      if (score === 1) {
+        if (!this.forceManualValidation()) {
+          this.emptyInputValue();
+          resolve(false);
+        } else {
+          this.userManuallyValidated = true;
+          resolve(true);
+        }
+      }
+      if (score >= 2) {
+        this.emptyInputValue();
+        resolve(false);
+      }
+    });
   }
   checkForCommas() {
     const commas = [...this.stateValue].filter((strChar, i, arr) => strChar === ",");
     if (commas.length > 0) {
-      this.reportError(
-        `Please provide only a street address. ex (123 Main St), exclude city, state, zipcode, and commas.`
-      );
       return true;
     }
     return false;
@@ -152,17 +240,17 @@ class AddressInputValidator {
       return /[a-zA-Z]/.test(nextChar);
     }
   }
-  checkForStateCode() {
-    const regexStr = this.stateCodes.join("|");
-    const stateMatch = new RegExp(`(${regexStr})`);
-
-    if (this.stateValue.match(stateMatch)) {
-      console.log(`state code found: ${stateMatch}`);
-      this.emptyInputValue({ reason: "stateCodeFound", value: stateMatch });
+  checkForStateRefs(arrayToCheckAgainst) {
+    let regexStr = arrayToCheckAgainst.join("|");
+    const stateMatchRegex = new RegExp(`\\b(${regexStr})\\b`, "gi");
+    const stateMatches = this.stateValue.match(stateMatchRegex);
+    if (stateMatches) {
+      console.log(`state/province code/name found: ${stateMatches}`);
       return true;
     }
     return false;
   }
+
   checkForZipCode() {
     //check for numbers
     //if we have some, let's make sure they dont look like zip codes
@@ -173,15 +261,7 @@ class AddressInputValidator {
       return /^[0-9]+$/.test(element);
     });
     if (numbers.length > 1) {
-      const userValidatedNoZip = confirm(
-        'It looks like you may have entered a zip code. Please remove any zip code information and try again. If you are sure you have entered a street address that does not contain a zip code, click "OK" to continue.'
-      );
-      if (userValidatedNoZip) {
-        return false;
-      } else {
-        this.emptyInputValue({ reason: "potentialZipCodeFound", value: numbers });
-        return true;
-      }
+      return true;
     }
     const looksLikeZip = numbers.filter((element) => {
       //check for numbers that look like zip codes
@@ -196,26 +276,20 @@ class AddressInputValidator {
     if (looksLikeZip.length > 0) {
       const probablyZipCode = this.checkForPrecedingComma(looksLikeZip);
       if (probablyZipCode) {
-        this.emptyInputValue({ reason: "potentialZipCodeFound", value: probablyZipCode });
         return true;
-      } else {
-        const userValidatedNoZip = confirm(
-          'It looks like you may have entered a zip code. Please remove any zip code information and try again. If you are sure you have entered a street address that does not contain a zip code, click "OK" to continue.'
-        );
-        if (userValidatedNoZip) {
-          return false;
-        } else {
-          this.emptyInputValue({ reason: "potentialZipCodeFound", value: probablyZipCode });
-          return true;
-        }
       }
     } else {
       return false;
     }
   }
+  forceManualValidation() {
+    if (!this.userManuallyValidated)
+      return confirm(
+        'Looks like you may have entered a city, state, or zipcode. If you have entered a correct street address (ex: 123 Main St) without city, state, or zipcode, click "OK" to continue.'
+      );
+  }
   emptyInputValue(reasonData) {
-    console.log(reasonData.reason);
-    this.reportError(`Please enter only a street address without zip code, city, or state. (ex: 123 Main St).`);
+    this.reportError(`Please enter only a street address without zipcode, city, or state. (ex: 123 Main St).`);
     this.input.value = "";
   }
   removeError() {

@@ -19,9 +19,9 @@
       <button id="submit">SUBMIT</button>
     </form>
     <script type="module">
-      import { AddressInputValidator } from "./index.js";
-      const addressInputValidator = new AddressInputValidator();
-      addressInputValidator.handleInput();
+      import { init } from "./init.js";
+      const addressInputValidator = init();
+      console.log(addressInputValidator);
     </script>
   </body>
 </html>
