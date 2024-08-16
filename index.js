@@ -146,7 +146,9 @@ class AddressInputValidator {
   }
   async handleInput(event) {
     //this.input.addEventListener("input", this.removeError.bind(this));
-    this.input.addEventListener("keyup", this.removeError.bind(this));
+    if (!this.input.classList.contains("processed")) {
+      this.input.addEventListener("keyup", this.removeError.bind(this));
+    }
     // this.input.addEventListener("blur", this.removeError.bind(this));
     this.stateValue = this.input.value;
 
@@ -157,6 +159,8 @@ class AddressInputValidator {
     this.validityTable.hasProvinceName = this.checkForStateRefs(this.provinceNames);
     this.validityTable.seemsValid = await this.calculateValidity();
     console.log(this.validityTable.seemsValid);
+
+    this.input.classList.add("processed");
     return this.validityTable.seemsValid;
   }
   //arbitrary checks for things that seem invalid
@@ -184,6 +188,7 @@ class AddressInputValidator {
       if (score === 0) resolve(true);
       if (score === 1) {
         if (!this.forceManualValidation()) {
+          this.reportError("Please enter a valid street address. Ex (123 Main St).");
           this.emptyInputValue();
           resolve(false);
         } else {
@@ -192,6 +197,7 @@ class AddressInputValidator {
         }
       }
       if (score >= 2) {
+        this.reportError("Please enter a valid street address. Ex (123 Main St).");
         this.emptyInputValue();
         resolve(false);
       }
@@ -263,9 +269,6 @@ class AddressInputValidator {
       if (element.includes(",")) element = element.replace(",", "");
       return /^[0-9]+$/.test(element);
     });
-    if (numbers.length > 1) {
-      return true;
-    }
     const looksLikeZip = numbers.filter((element) => {
       //check for numbers that look like zip codes
       if (
@@ -292,7 +295,6 @@ class AddressInputValidator {
       );
   }
   emptyInputValue(reasonData) {
-    this.reportError(`Please enter only a street address without zipcode, city, or state. (ex: 123 Main St).`);
     this.input.value = "";
   }
   removeError() {

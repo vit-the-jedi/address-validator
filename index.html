@@ -19,9 +19,10 @@
       <button id="submit">SUBMIT</button>
     </form>
     <script type="module">
-      import { init } from "./init.js";
-      const addressInputValidator = init();
-      console.log(addressInputValidator);
+      import { AddressInputValidator } from "./index.js";
+      window.initAddressInputValidator = (input) => {
+        return new AddressInputValidator(input);
+      };
     </script>
   </body>
 </html>

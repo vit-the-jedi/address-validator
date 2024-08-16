@@ -176,7 +176,9 @@ class AddressInputValidator {
     ];
   }
   async handleInput(event) {
-    this.input.addEventListener("keyup", this.removeError.bind(this));
+    if (!this.input.classList.contains("processed")) {
+      this.input.addEventListener("keyup", this.removeError.bind(this));
+    }
     this.stateValue = this.input.value;
     this.validityTable.hasZipCode = this.checkForZipCode();
     this.validityTable.hasStateCode = this.checkForStateRefs(this.stateCodes);
@@ -185,6 +187,7 @@ class AddressInputValidator {
     this.validityTable.hasProvinceName = this.checkForStateRefs(this.provinceNames);
     this.validityTable.seemsValid = await this.calculateValidity();
     console.log(this.validityTable.seemsValid);
+    this.input.classList.add("processed");
     return this.validityTable.seemsValid;
   }
   //arbitrary checks for things that seem invalid
@@ -207,6 +210,7 @@ class AddressInputValidator {
         resolve(true);
       if (score === 1) {
         if (!this.forceManualValidation()) {
+          this.reportError("Please enter a valid street address. Ex (123 Main St).");
           this.emptyInputValue();
           resolve(false);
         } else {
@@ -215,6 +219,7 @@ class AddressInputValidator {
         }
       }
       if (score >= 2) {
+        this.reportError("Please enter a valid street address. Ex (123 Main St).");
         this.emptyInputValue();
         resolve(false);
       }
@@ -276,9 +281,6 @@ class AddressInputValidator {
         element = element.replace(",", "");
       return /^[0-9]+$/.test(element);
     });
-    if (numbers.length > 1) {
-      return true;
-    }
     const looksLikeZip = numbers.filter((element) => {
       if (element !== this.whiteListedZipCode && /^\d{5}(?:[-\s]\d{4})?$/.test(element) || /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][ -]?\d[ABCEGHJ-NPRSTV-Z]\d$/i.test(element)) {
         return element;
@@ -300,7 +302,6 @@ class AddressInputValidator {
       );
   }
   emptyInputValue(reasonData) {
-    this.reportError(`Please enter only a street address without zipcode, city, or state. (ex: 123 Main St).`);
     this.input.value = "";
   }
   removeError() {
@@ -315,8 +316,6 @@ class AddressInputValidator {
     this.input.parentElement.querySelector("button").removeAttribute("disabled");
   }
 }
-const init = (input) => {
+window.initAddressInputValidator = (input) => {
   return new AddressInputValidator(input);
 };
-const addressInputValidator = init();
-console.log(addressInputValidator);
