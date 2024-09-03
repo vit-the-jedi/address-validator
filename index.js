@@ -75,7 +75,18 @@ class AddressInputValidator {
         "WI",
         "WY",
       ]);
-    this.provinceCodes = ["AB", "BC", "MB", "NB", "NL", "NS", "ON", "PE", "QC", "SK"];
+    this.provinceCodes = [
+      "AB",
+      "BC",
+      "MB",
+      "NB",
+      "NL",
+      "NS",
+      "ON",
+      "PE",
+      "QC",
+      "SK",
+    ];
     this.stateNames = [
       "Alabama",
       "Alaska",
@@ -148,18 +159,21 @@ class AddressInputValidator {
     //this.input.addEventListener("input", this.removeError.bind(this));
     if (!this.input.classList.contains("processed")) {
       this.input.addEventListener("keyup", this.removeError.bind(this));
+      this.input.addEventListener("input", this.removeError.bind(this));
     }
     // this.input.addEventListener("blur", this.removeError.bind(this));
     this.stateValue = this.input.value;
 
     this.validityTable.hasZipCode = this.checkForZipCode();
     this.validityTable.hasStateCode = this.checkForStateRefs(this.stateCodes);
-    this.validityTable.hasProvinceCode = this.checkForStateRefs(this.provinceCodes);
+    this.validityTable.hasProvinceCode = this.checkForStateRefs(
+      this.provinceCodes
+    );
     this.validityTable.hasStateName = this.checkForStateRefs(this.stateNames);
-    this.validityTable.hasProvinceName = this.checkForStateRefs(this.provinceNames);
+    this.validityTable.hasProvinceName = this.checkForStateRefs(
+      this.provinceNames
+    );
     this.validityTable.seemsValid = await this.calculateValidity();
-    console.log(this.validityTable.seemsValid);
-
     this.input.classList.add("processed");
     return this.validityTable.seemsValid;
   }
@@ -184,11 +198,12 @@ class AddressInputValidator {
       ) {
         score += 3;
       }
-      console.log(score);
       if (score === 0) resolve(true);
       if (score === 1) {
         if (!this.forceManualValidation()) {
-          this.reportError("Please enter a valid street address. Ex (123 Main St).");
+          this.reportError(
+            "Please enter a valid street address. Ex (123 Main St)."
+          );
           this.emptyInputValue();
           resolve(false);
         } else {
@@ -197,14 +212,18 @@ class AddressInputValidator {
         }
       }
       if (score >= 2) {
-        this.reportError("Please enter a valid street address. Ex (123 Main St).");
+        this.reportError(
+          "Please enter a valid street address. Ex (123 Main St)."
+        );
         this.emptyInputValue();
         resolve(false);
       }
     });
   }
   checkForCommas() {
-    const commas = [...this.stateValue].filter((strChar, i, arr) => strChar === ",");
+    const commas = [...this.stateValue].filter(
+      (strChar, i, arr) => strChar === ","
+    );
     if (commas.length > 0) {
       return true;
     }
@@ -231,9 +250,14 @@ class AddressInputValidator {
       for (const index of stateValueCommaIndices) {
         //check if the index of the zip code is greater than the index of the comma
         //and also check to make sure the next character after the comma is not a letter
-        if (this.stateValue.indexOf(zip) > index && !this.nextCharIsLetter(index)) {
+        if (
+          this.stateValue.indexOf(zip) > index &&
+          !this.nextCharIsLetter(index)
+        ) {
           //if both conditions are true, we most-likely have a zip code enetered
-          console.log(`found a zip code: ${zip} after a comma at index: ${index}`);
+          console.log(
+            `found a zip code: ${zip} after a comma at index: ${index}`
+          );
           return zip;
         }
       }
@@ -272,19 +296,30 @@ class AddressInputValidator {
     const looksLikeZip = numbers.filter((element) => {
       //check for numbers that look like zip codes
       if (
-        (element !== this.whiteListedZipCode && /^\d{5}(?:[-\s]\d{4})?$/.test(element)) ||
-        /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][ -]?\d[ABCEGHJ-NPRSTV-Z]\d$/i.test(element)
+        (element !== this.whiteListedZipCode &&
+          /^\d{5}(?:[-\s]\d{4})?$/.test(element)) ||
+        /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][ -]?\d[ABCEGHJ-NPRSTV-Z]\d$/i.test(
+          element
+        )
       ) {
         //if we have a match, check for a comma before it
         return element;
       }
     });
     if (looksLikeZip.length > 0) {
-      const probablyZipCode = this.checkForPrecedingComma(looksLikeZip);
-      if (probablyZipCode) {
+      const zipValidations = {
+        hasPrecedingComma: true,
+        foundAtEnd: true,
+      };
+      zipValidations.hasPrecedingComma =
+        this.checkForPrecedingComma(looksLikeZip);
+      zipValidations.foundAtEnd = this.input.value.endsWith(looksLikeZip[0]);
+
+      if (zipValidations.hasPrecedingComma || zipValidations.foundAtEnd) {
         return true;
       }
     } else {
+      this.reason = "Looks like you entered a zipcode, please en"
       return false;
     }
   }
@@ -306,7 +341,9 @@ class AddressInputValidator {
     this.input.reportValidity();
   }
   enableSubmitButton() {
-    this.input.parentElement.querySelector("button").removeAttribute("disabled");
+    this.input.parentElement
+      .querySelector("button")
+      .removeAttribute("disabled");
   }
 }
 
