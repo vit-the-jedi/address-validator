@@ -106,7 +106,18 @@ class AddressInputValidator {
       "WI",
       "WY"
     ];
-    this.provinceCodes = ["AB", "BC", "MB", "NB", "NL", "NS", "ON", "PE", "QC", "SK"];
+    this.provinceCodes = [
+      "AB",
+      "BC",
+      "MB",
+      "NB",
+      "NL",
+      "NS",
+      "ON",
+      "PE",
+      "QC",
+      "SK"
+    ];
     this.stateNames = [
       "Alabama",
       "Alaska",
@@ -175,58 +186,73 @@ class AddressInputValidator {
       "Yukon"
     ];
   }
-  async handleInput(event) {
+  checkForPlacesApiChoice(ev) {
+    this.input.value;
+    console.log(this.input.value);
+  }
+  handleInput() {
     if (!this.input.classList.contains("processed")) {
       this.input.addEventListener("keyup", this.removeError.bind(this));
+      this.input.addEventListener("input", this.removeError.bind(this));
     }
     this.stateValue = this.input.value;
     this.validityTable.hasZipCode = this.checkForZipCode();
     this.validityTable.hasStateCode = this.checkForStateRefs(this.stateCodes);
-    this.validityTable.hasProvinceCode = this.checkForStateRefs(this.provinceCodes);
+    this.validityTable.hasProvinceCode = this.checkForStateRefs(
+      this.provinceCodes
+    );
     this.validityTable.hasStateName = this.checkForStateRefs(this.stateNames);
-    this.validityTable.hasProvinceName = this.checkForStateRefs(this.provinceNames);
-    this.validityTable.seemsValid = await this.calculateValidity();
-    console.log(this.validityTable.seemsValid);
+    this.validityTable.hasProvinceName = this.checkForStateRefs(
+      this.provinceNames
+    );
+    this.validityTable.seemsValid = this.calculateValidity();
     this.input.classList.add("processed");
+    if (localStorage.getItem("addressInputValidationLogging")) {
+      console.log("Validity Table:", this.validityTable);
+    }
     return this.validityTable.seemsValid;
   }
   //arbitrary checks for things that seem invalid
   calculateValidity() {
-    return new Promise((resolve, reject) => {
-      let score = 0;
-      if (this.stateValue.split(" ").length > 5) {
-        console.log("more than 5 words found, score +1");
-        score++;
-      }
-      if (this.checkForCommas()) {
-        console.log("commas found, score +1");
-        score++;
-      }
-      if (this.validityTable.hasZipCode || this.validityTable.hasStateCode || this.validityTable.hasProvinceCode || this.validityTable.hasStateName || this.validityTable.hasProvinceName) {
-        score += 3;
-      }
-      console.log(score);
-      if (score === 0)
-        resolve(true);
-      if (score === 1) {
-        if (!this.forceManualValidation()) {
-          this.reportError("Please enter a valid street address. Ex (123 Main St).");
-          this.emptyInputValue();
-          resolve(false);
-        } else {
-          this.userManuallyValidated = true;
-          resolve(true);
-        }
-      }
-      if (score >= 2) {
-        this.reportError("Please enter a valid street address. Ex (123 Main St).");
+    let score = 0;
+    if (this.stateValue.split(" ").length > 5) {
+      score++;
+    }
+    if (this.checkForCommas()) {
+      score++;
+    }
+    if (this.validityTable.hasZipCode || this.validityTable.hasStateCode || this.validityTable.hasProvinceCode || this.validityTable.hasStateName || this.validityTable.hasProvinceName) {
+      score += 3;
+    }
+    if (score === 0)
+      return true;
+    if (score === 1) {
+      const dataLayer = window.dataLayer || [];
+      if (!this.forceManualValidation()) {
+        this.reportError(
+          "Please enter a valid street address. Ex (123 Main St)."
+        );
         this.emptyInputValue();
-        resolve(false);
+        dataLayer.push({ "event": "userManualValidation" });
+        return false;
+      } else {
+        this.userManuallyValidated = true;
+        dataLayer.push({ "event": "userManualValidation" });
+        return true;
       }
-    });
+    }
+    if (score >= 2) {
+      this.reportError(
+        "Please enter a valid street address. Ex (123 Main St)."
+      );
+      this.emptyInputValue();
+      return false;
+    }
   }
   checkForCommas() {
-    const commas = [...this.stateValue].filter((strChar, i, arr) => strChar === ",");
+    const commas = [...this.stateValue].filter(
+      (strChar, i, arr) => strChar === ","
+    );
     if (commas.length > 0) {
       return true;
     }
@@ -249,7 +275,9 @@ class AddressInputValidator {
     for (const zip of potentialZipArray) {
       for (const index of stateValueCommaIndices) {
         if (this.stateValue.indexOf(zip) > index && !this.nextCharIsLetter(index)) {
-          console.log(`found a zip code: ${zip} after a comma at index: ${index}`);
+          console.log(
+            `found a zip code: ${zip} after a comma at index: ${index}`
+          );
           return zip;
         }
       }
@@ -282,16 +310,24 @@ class AddressInputValidator {
       return /^[0-9]+$/.test(element);
     });
     const looksLikeZip = numbers.filter((element) => {
-      if (element !== this.whiteListedZipCode && /^\d{5}(?:[-\s]\d{4})?$/.test(element) || /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][ -]?\d[ABCEGHJ-NPRSTV-Z]\d$/i.test(element)) {
+      if (element !== this.whiteListedZipCode && /^\d{5}(?:[-\s]\d{4})?$/.test(element) || /^[ABCEGHJ-NPRSTVXY]\d[ABCEGHJ-NPRSTV-Z][ -]?\d[ABCEGHJ-NPRSTV-Z]\d$/i.test(
+        element
+      )) {
         return element;
       }
     });
     if (looksLikeZip.length > 0) {
-      const probablyZipCode = this.checkForPrecedingComma(looksLikeZip);
-      if (probablyZipCode) {
+      const zipValidations = {
+        hasPrecedingComma: true,
+        foundAtEnd: true
+      };
+      zipValidations.hasPrecedingComma = this.checkForPrecedingComma(looksLikeZip);
+      zipValidations.foundAtEnd = this.input.value.endsWith(looksLikeZip[0]);
+      if (zipValidations.hasPrecedingComma || zipValidations.foundAtEnd) {
         return true;
       }
     } else {
+      this.reason = "Looks like you entered a zipcode, please en";
       return false;
     }
   }
@@ -304,7 +340,8 @@ class AddressInputValidator {
   emptyInputValue(reasonData) {
     this.input.value = "";
   }
-  removeError() {
+  removeError(ev) {
+    console.log(ev);
     this.input.setCustomValidity("");
     this.input.reportValidity();
   }
@@ -318,4 +355,8 @@ class AddressInputValidator {
 }
 window.initAddressInputValidator = (input) => {
   return new AddressInputValidator(input);
+};
+window.enableAddressValidatorLogging = function() {
+  console.log("Address Input Validation logging enabled");
+  localStorage.setItem("addressInputValidationLogging", true);
 };

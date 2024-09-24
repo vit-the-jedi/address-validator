@@ -23,6 +23,10 @@
       window.initAddressInputValidator = (input) => {
         return new AddressInputValidator(input);
       };
+      window.enableAddressValidatorLogging = function(){
+        console.log('Address Input Validation logging enabled');
+        localStorage.setItem('addressInputValidationLogging', true);
+      }
     </script>
   </body>
 </html>
