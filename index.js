@@ -265,7 +265,7 @@ class AddressInputValidator {
           console.log(
             `found a zip code: ${zip} after a comma at index: ${index}`
           );
-          return zip;
+          return true;
         }
       }
     }
@@ -314,19 +314,10 @@ class AddressInputValidator {
       }
     });
     if (looksLikeZip.length > 0) {
-      const zipValidations = {
-        hasPrecedingComma: true,
-        foundAtEnd: true,
-      };
-      zipValidations.hasPrecedingComma =
-        this.checkForPrecedingComma(looksLikeZip);
-      zipValidations.foundAtEnd = this.input.value.endsWith(looksLikeZip[0]);
-
-      if (zipValidations.hasPrecedingComma || zipValidations.foundAtEnd) {
-        return true;
-      }
+      //if the number that looks like a zip code has a comma before it, we most likely have a zip code
+      //OR if the number that looks like a zip code is at the end of the value, we most likely have a zip code
+      return this.checkForPrecedingComma(looksLikeZip) || this.input.value.endsWith(looksLikeZip[0]);
     } else {
-      this.reason = "Looks like you entered a zipcode, please en"
       return false;
     }
   }
