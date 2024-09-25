@@ -215,6 +215,8 @@ class AddressInputValidator {
   //arbitrary checks for things that seem invalid
   calculateValidity() {
     let score = 0;
+    if (this.stateValue.split(" ").length < 3 || !/[a-zA-Z]/.test(this.stateValue))
+      score = 3;
     if (this.stateValue.split(" ").length > 5) {
       score++;
     }
@@ -251,12 +253,9 @@ class AddressInputValidator {
   }
   checkForCommas() {
     const commas = [...this.stateValue].filter(
-      (strChar, i, arr) => strChar === ","
+      (strChar) => strChar === ","
     );
-    if (commas.length > 0) {
-      return true;
-    }
-    return false;
+    return (commas == null ? void 0 : commas.length) > 0 || false;
   }
   checkForPrecedingComma(potentialZipArray) {
     let indicesRemoved = 0;
@@ -331,14 +330,36 @@ class AddressInputValidator {
   emptyInputValue(reasonData) {
     this.input.value = "";
   }
+  createError(msg) {
+    this.error = document.createElement("div");
+    const classes = ["validation", "validation--error"];
+    this.error.id = "addressInputError";
+    this.error.style.left = "0px";
+    this.error.style.right = "auto";
+    classes.forEach((className) => {
+      this.error.classList.add(className);
+    });
+    const txt = document.createElement("span");
+    txt.classList.add("validation__message");
+    txt.textContent = msg;
+    this.error.appendChild(txt);
+    this.input.parentElement.appendChild(this.error);
+  }
   removeError(ev) {
-    console.log(ev);
-    this.input.setCustomValidity("");
-    this.input.reportValidity();
+    if (document.querySelector("#addressInputError")) {
+      this.error.closest(".formInput").classList.remove("showErrors");
+      this.error.remove();
+    }
   }
   reportError(msg) {
-    this.input.setCustomValidity(msg);
-    this.input.reportValidity();
+    const errorExists = document.querySelector("#addressInputError");
+    if (errorExists)
+      this.error.closest(".formInput").classList.toggle("showErrors");
+    this.createError(msg);
+    const errorClasses = ["hasInteracted", "hasError", "showErrors"];
+    errorClasses.forEach((className) => {
+      this.error.closest(".formInput").classList.add(className);
+    });
   }
   enableSubmitButton() {
     this.input.parentElement.querySelector("button").removeAttribute("disabled");

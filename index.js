@@ -155,7 +155,7 @@ class AddressInputValidator {
       "Yukon",
     ];
   }
-  checkForPlacesApiChoice(ev){
+  checkForPlacesApiChoice(ev) {
     const value = this.input.value;
     console.log(this.input.value);
   }
@@ -178,67 +178,70 @@ class AddressInputValidator {
     );
     this.validityTable.seemsValid = this.calculateValidity();
     this.input.classList.add("processed");
-    if(localStorage.getItem('addressInputValidationLogging')){
-      console.log('Validity Table:', (this.validityTable));
+    if (localStorage.getItem("addressInputValidationLogging")) {
+      console.log("Validity Table:", this.validityTable);
     }
     return this.validityTable.seemsValid;
   }
   //arbitrary checks for things that seem invalid
   calculateValidity() {
+    //a score of 2 or higher results in an error
+    //a score of 1 forces the user to manually validate the address
     let score = 0;
-      if (this.stateValue.split(" ").length > 5) {
-        score++;
-      }
-      if (this.checkForCommas()) {
-        score++;
-      }
-      if (
-        this.validityTable.hasZipCode ||
-        this.validityTable.hasStateCode ||
-        this.validityTable.hasProvinceCode ||
-        this.validityTable.hasStateName ||
-        this.validityTable.hasProvinceName
-      ) {
-        score += 3;
-      }
-      //check score
-      if (score === 0) return true;
-      //if we have a score of 1, we need to ask the user to manually validate
-      if (score === 1) {
-        const dataLayer = window.dataLayer || [];
-        if (!this.forceManualValidation()) {
-          this.reportError(
-            "Please enter a valid street address. Ex (123 Main St)."
-          );
-          this.emptyInputValue();
-          dataLayer.push({'event': 'userManualValidation'});
-          return false;
-        } else {
-          this.userManuallyValidated = true;
-          dataLayer.push({'event': 'userManualValidation'});
-          return true;
-        }
-      }
-      if (score >= 2) {
+    //if our value has less than 3 parts, it most likely is not a valid address
+    //OR if our value doesn't have any letters, it most likely is not a valid address
+    if (
+      this.stateValue.split(" ").length < 3 ||
+      !/[a-zA-Z]/.test(this.stateValue)
+    )
+      score = 3;
+    if (this.stateValue.split(" ").length > 5) {
+      score++;
+    }
+    if (this.checkForCommas()) {
+      score++;
+    }
+    if (
+      this.validityTable.hasZipCode ||
+      this.validityTable.hasStateCode ||
+      this.validityTable.hasProvinceCode ||
+      this.validityTable.hasStateName ||
+      this.validityTable.hasProvinceName
+    ) {
+      score += 3;
+    }
+    //check score
+    if (score === 0) return true;
+    //if we have a score of 1, we need to ask the user to manually validate
+    if (score === 1) {
+      const dataLayer = window.dataLayer || [];
+      if (!this.forceManualValidation()) {
         this.reportError(
           "Please enter a valid street address. Ex (123 Main St)."
         );
         this.emptyInputValue();
+        dataLayer.push({ event: "userManualValidation" });
         return false;
+      } else {
+        this.userManuallyValidated = true;
+        dataLayer.push({ event: "userManualValidation" });
+        return true;
       }
+    }
+    if (score >= 2) {
+      this.reportError(
+        "Please enter a valid street address. Ex (123 Main St)."
+      );
+      this.emptyInputValue();
+      return false;
+    }
   }
   checkForCommas() {
-    const commas = [...this.stateValue].filter(
-      (strChar, i, arr) => strChar === ","
-    );
-    if (commas.length > 0) {
-      return true;
-    }
-    return false;
+    const commas = [...this.stateValue].filter((strChar) => strChar === ",");
+    return commas?.length > 0 || false;
   }
   checkForPrecedingComma(potentialZipArray) {
     let indicesRemoved = 0;
-    let data = null;
     let stateValueCommaIndices = [];
     [...this.stateValue].forEach((strChar, i, arr) => {
       if (strChar === ",") {
@@ -255,7 +258,7 @@ class AddressInputValidator {
 
     for (const zip of potentialZipArray) {
       for (const index of stateValueCommaIndices) {
-        //check if the index of the zip code is greater than the index of the comma
+        //check if the index of the potential zip code is greater than the index of the comma (comma is before the potential zip code)
         //and also check to make sure the next character after the comma is not a letter
         if (
           this.stateValue.indexOf(zip) > index &&
@@ -316,7 +319,10 @@ class AddressInputValidator {
     if (looksLikeZip.length > 0) {
       //if the number that looks like a zip code has a comma before it, we most likely have a zip code
       //OR if the number that looks like a zip code is at the end of the value, we most likely have a zip code
-      return this.checkForPrecedingComma(looksLikeZip) || this.input.value.endsWith(looksLikeZip[0]);
+      return (
+        this.checkForPrecedingComma(looksLikeZip) ||
+        this.input.value.endsWith(looksLikeZip[0])
+      );
     } else {
       return false;
     }
@@ -330,14 +336,40 @@ class AddressInputValidator {
   emptyInputValue(reasonData) {
     this.input.value = "";
   }
+  createError(msg) {
+    this.error = document.createElement("div");
+    const classes = ["validation", "validation--error"];
+    this.error.id = "addressInputError";
+    this.error.style.left = "0px";
+    this.error.style.right = "auto";
+    classes.forEach((className) => {
+      this.error.classList.add(className);
+    });
+    const txt = document.createElement("span");
+    txt.classList.add("validation__message");
+    txt.textContent = msg;
+    this.error.appendChild(txt);
+    this.input.parentElement.appendChild(this.error);
+  }
   removeError(ev) {
-    console.log(ev);
-    this.input.setCustomValidity("");
-    this.input.reportValidity();
+    if (document.querySelector("#addressInputError")) {
+      this.error.closest(".formInput").classList.remove("showErrors");
+      this.error.remove();
+      // this.input.setCustomValidity("");
+      // this.input.reportValidity();
+    }
   }
   reportError(msg) {
-    this.input.setCustomValidity(msg);
-    this.input.reportValidity();
+    const errorExists = document.querySelector("#addressInputError");
+    if (errorExists)
+      this.error.closest(".formInput").classList.toggle("showErrors");
+    this.createError(msg);
+    const errorClasses = ["hasInteracted", "hasError", "showErrors"];
+    errorClasses.forEach((className) => {
+      this.error.closest(".formInput").classList.add(className);
+    });
+    // this.input.setCustomValidity(msg);
+    // this.input.reportValidity();
   }
   enableSubmitButton() {
     this.input.parentElement
